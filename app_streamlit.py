@@ -4,17 +4,26 @@ import yt_dlp
 
 def baixar_video(url):
     """
-    Baixa o vídeo do YouTube usando yt-dlp com formato único
+    Baixa o vídeo do YouTube usando yt-dlp com configurações avançadas
     """
     try:
         # Criar pasta de downloads temporários
         pasta_temp = os.path.join(os.getcwd(), 'downloads_temp')
         os.makedirs(pasta_temp, exist_ok=True)
 
-        # Configurações do yt-dlp com formato único
+        # Configurações do yt-dlp com opções avançadas
         ydl_opts = {
-            'format': 'best[ext=mp4]',  # Formato de vídeo único para evitar problemas
+            'format': 'best[ext=mp4]',  # Formato de vídeo único
             'outtmpl': os.path.join(pasta_temp, '%(title)s.%(ext)s'),
+            'no_warnings': True,
+            'ignoreerrors': False,
+            'no_color': True,
+            'cookiefile': None,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'headers': {
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.youtube.com/',
+            },
         }
 
         # Criar barra de progresso
