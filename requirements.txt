@@ -1,3 +1,2 @@
 pytube==15.0.0
 streamlit==1.29.0
-yt-dlp==2024.3.10

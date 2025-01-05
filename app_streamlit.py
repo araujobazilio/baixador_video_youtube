@@ -1,61 +1,47 @@
 import os
 import streamlit as st
-import yt_dlp
+from pytube import YouTube
+import requests
 
 def baixar_video(url):
     """
-    Baixa o vídeo do YouTube usando yt-dlp com configurações avançadas
+    Baixa o vídeo do YouTube usando pytube com tratamento de erros
     """
     try:
         # Criar pasta de downloads temporários
         pasta_temp = os.path.join(os.getcwd(), 'downloads_temp')
         os.makedirs(pasta_temp, exist_ok=True)
 
-        # Configurações do yt-dlp com opções avançadas
-        ydl_opts = {
-            'format': 'best[ext=mp4]',  # Formato de vídeo único
-            'outtmpl': os.path.join(pasta_temp, '%(title)s.%(ext)s'),
-            'no_warnings': True,
-            'ignoreerrors': False,
-            'no_color': True,
-            'cookiefile': None,
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'headers': {
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://www.youtube.com/',
-            },
-        }
-
         # Criar barra de progresso
         barra_progresso = st.progress(0)
 
-        # Função para atualizar progresso
-        def progress_hook(d):
-            if d['status'] == 'downloading':
-                p = d.get('downloaded_bytes', 0)
-                t = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
-                if t > 0:
-                    progresso = int(p * 100 / t)
-                    barra_progresso.progress(min(progresso, 100))
-            
-            if d['status'] == 'finished':
-                barra_progresso.progress(100)
+        # Função de progresso personalizada
+        def on_progress(stream, chunk, bytes_remaining):
+            total_size = stream.filesize
+            bytes_downloaded = total_size - bytes_remaining
+            percentage_of_completion = bytes_downloaded / total_size
+            barra_progresso.progress(min(int(percentage_of_completion * 100), 100))
 
-        # Adicionar hook de progresso
-        ydl_opts['progress_hooks'] = [progress_hook]
+        # Modificar URL de Shorts para vídeo normal
+        if 'shorts/' in url:
+            url = url.replace('shorts/', 'watch?v=')
 
-        # Baixar vídeo
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Extrair informações do vídeo
-            info_dict = ydl.extract_info(url, download=True)
-            
-            # Preparar nome do arquivo
-            arquivo = ydl.prepare_filename(info_dict)
-            
-            # Obter título do vídeo
-            titulo = info_dict.get('title', 'video')
+        # Criar objeto YouTube
+        yt = YouTube(url, on_progress_callback=on_progress)
 
-        return arquivo, titulo
+        # Selecionar stream de maior resolução
+        stream = yt.streams.get_highest_resolution()
+
+        # Caminho completo para o arquivo
+        caminho_arquivo = os.path.join(pasta_temp, f"{yt.title}.mp4")
+
+        # Baixar o vídeo
+        stream.download(output_path=pasta_temp, filename=f"{yt.title}.mp4")
+
+        # Completar barra de progresso
+        barra_progresso.progress(100)
+
+        return caminho_arquivo, yt.title
     
     except Exception as e:
         st.error(f"Erro ao baixar o vídeo: {e}")
